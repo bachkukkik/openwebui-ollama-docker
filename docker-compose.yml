@@ -1,6 +1,15 @@
 services:
   ollama:
     image: ollama/ollama:latest
+    #### uncomment the following line to use the GPU
+    # deploy:
+    #   replicas: 1
+    #   resources:
+    #     reservations:
+    #       devices:
+    #         - driver: nvidia
+    #           count: all
+    #           capabilities: [gpu]
     healthcheck:
       test: timeout 5 bash -c "</dev/tcp/localhost/11434"
       interval: 10s
