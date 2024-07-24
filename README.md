@@ -1,13 +1,20 @@
 # openwebui-ollama-docker
 basic Open WebUI + Ollama stack for Local ChatGPT
 
+## What is inside?
+* Services
+  * Ollama : LLM engine, model catalog. Please refer to https://ollama.com/library for available models
+  * Searxng : Private Search Engine with unlimited search API capabilities. This can be used as Web Search Tool for agentic workflow. Off the shelf, it works seanlessly with Open WebUI
+  * Open WebUI : User interface for Ollama, also Ollama / OpenAI compatible API. Please visit [this docs](https://docs.openwebui.com/) for more details
+  * Postgres : Most popular open source SQL DB with extensible functionalities
+
 ## Basic Usage
 1. Clone this repository
 2. `$ cd openwebui-ollama-docker`
 3. `$ cp .env.example .env`
 4. Edit `.env` file to your liking
 5. `$ cp ./searxng/settings.yml.example ./searxng/settings.yml`
-6. Edit `./searxng/settings.yml` file to your liking
+6. Edit `secret_key` in `./searxng/settings.yml` to your liking
 7. `$ docker-compose up -d`
 8. Open your browser and go to `http://localhost:8080`
 
