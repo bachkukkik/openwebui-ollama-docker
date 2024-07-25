@@ -45,10 +45,10 @@ services:
 
       ## Searxng
       - ENABLE_RAG_WEB_SEARCH=true
-      - RAG_WEB_SEARCH_ENGINE="searxng"
+      - RAG_WEB_SEARCH_ENGINE=searxng
       - RAG_WEB_SEARCH_RESULT_COUNT=3
       - RAG_WEB_SEARCH_CONCURRENT_REQUEST=10
-      - SEARXNG_QUERY_URL="http://searxng:8080/search?q=<query>"
+      - SEARXNG_QUERY_URL=http://searxng:8080/search?q=<query>
 
       ## Web
       - OAUTH_MERGE_ACCOUNTS_BY_EMAIL=${OAUTH_MERGE_ACCOUNTS_BY_EMAIL:-false}
