@@ -1,49 +1,4 @@
 services:
-  litellm:
-    image: ghcr.io/berriai/litellm-database:main-latest
-    ports:
-      - "${LITELLM_PORT:-4000}:4000"
-    environment:
-      - DATABASE_URL=${LITELLM_DATABASE_URL}
-      - LITELLM_MODE=${LITELLM_MODE:-PRODUCTION}
-      - LITELLM_LOG=${LITELLM_LOG:-ERROR}
-      - LITELLM_SALT_KEY=${LITELLM_SALT_KEY:-sk-vanilla-agent-litellm}
-      - LITELLM_MASTER_KEY=${LITELLM_MASTER_KEY}
-      - REDIS_HOST=${LITELLM_REDIS_HOST:-litellm_redis}
-      - REDIS_PORT=${LITELLM_REDIS_PORT:-6379}
-      - REDIS_PASSWORD=${LITELLM_REDIS_PASSWORD:-}
-      - OLLAMA_BASE_URL=${OLLAMA_BASE_URL:-http://ollama:11434}
-      - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY}
-      - OPENAI_API_KEY=${OPENAI_API_KEY}
-      - DEEPSEEK_API_KEY=${DEEPSEEK_API_KEY}
-      - VERTEX_PROJECT=${VERTEX_PROJECT}
-      - VERTEX_LOCATION=${VERTEX_LOCATION}
-      - VERTEX_CREDENTIALS=${VERTEX_CREDENTIALS}
-    volumes:
-      - ./litellm/config.yaml:/app/config.yaml
-      - ./litellm/.credentials/:/app/.credentials/
-    command: ["--config", "/app/config.yaml"]
-    depends_on:
-      litellm_postgres:
-        condition: service_healthy
-      litellm_redis:
-        condition: service_healthy
-    healthcheck:
-      test: timeout 5 bash -c "</dev/tcp/localhost/4000"
-      interval: 10s
-      timeout: 30s
-      retries: 5
-      start_period: 15s
-    restart: unless-stopped
-    labels:
-      - autoheal-app=true
-      - com.centurylinklabs.watchtower.enable=true
-    networks:
-      default:
-      cloudflare:
-        aliases:
-          - ${LITELLM_NETWORKS_ALIAS:-ood-litellm}
-
   litellm_postgres:
     image: postgres:17
     environment:
@@ -91,6 +46,51 @@ services:
       default:
         aliases:
           - ${LITELLM_REDIS_NETWORKS_ALIAS:-ood-litellm-redis}
+
+  litellm:
+    image: ghcr.io/berriai/litellm-database:main-latest
+    ports:
+      - 4000:4000
+    environment:
+      - DATABASE_URL=${LITELLM_DATABASE_URL}
+      - LITELLM_MODE=${LITELLM_MODE:-PRODUCTION}
+      - LITELLM_LOG=${LITELLM_LOG:-ERROR}
+      - LITELLM_SALT_KEY=${LITELLM_SALT_KEY:-sk-vanilla-agent-litellm}
+      - LITELLM_MASTER_KEY=${LITELLM_MASTER_KEY}
+      - REDIS_HOST=${LITELLM_REDIS_HOST:-litellm_redis}
+      - REDIS_PORT=${LITELLM_REDIS_PORT:-6379}
+      - REDIS_PASSWORD=${LITELLM_REDIS_PASSWORD:-}
+      - OLLAMA_BASE_URL=${OLLAMA_BASE_URL:-http://ollama:11434}
+      - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY}
+      - OPENAI_API_KEY=${OPENAI_API_KEY}
+      - DEEPSEEK_API_KEY=${DEEPSEEK_API_KEY}
+      - VERTEX_PROJECT=${VERTEX_PROJECT}
+      - VERTEX_LOCATION=${VERTEX_LOCATION}
+      - VERTEX_CREDENTIALS=${VERTEX_CREDENTIALS}
+    volumes:
+      - ./litellm/config.yaml:/app/config.yaml
+      - ./litellm/.credentials/:/app/.credentials/
+    command: ["--config", "/app/config.yaml"]
+    depends_on:
+      litellm_postgres:
+        condition: service_healthy
+      litellm_redis:
+        condition: service_healthy
+    healthcheck:
+      test: timeout 5 bash -c "</dev/tcp/localhost/4000"
+      interval: 10s
+      timeout: 30s
+      retries: 5
+      start_period: 15s
+    restart: unless-stopped
+    labels:
+      - autoheal-app=true
+      - com.centurylinklabs.watchtower.enable=true
+    networks:
+      default:
+      cloudflare:
+        aliases:
+          - ${LITELLM_NETWORKS_ALIAS:-ood-litellm}
 
 volumes:
   litellm_postgres:
