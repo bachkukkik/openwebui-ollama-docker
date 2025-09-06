@@ -1,0 +1,213 @@
+services:
+  ollama:
+    image: ollama/ollama:latest
+    #### uncomment if cuda available
+    # deploy:
+    #   replicas: 1
+    #   resources:
+    #     reservations:
+    #       memory: 16GB
+    #       devices:
+    #         - driver: nvidia
+    #           count: all
+    #           capabilities: [gpu]
+    #     limits:
+    #       memory: 32GB
+    environment:
+      - OLLAMA_FLASH_ATTENTION=${OLLAMA_FLASH_ATTENTION:-1}
+      - OLLAMA_KEEP_ALIVE=${OLLAMA_KEEP_ALIVE:-5m}
+    healthcheck:
+      test: timeout 5 bash -c "</dev/tcp/localhost/11434"
+      interval: 10s
+      timeout: 30s
+      retries: 5
+      start_period: 15s
+    # ports:
+    #   - 11434:11434
+    restart: unless-stopped
+    volumes:
+      - ollama:/root/.ollama
+    networks:
+      default:
+        aliases:
+          - ${OLLAMA_NETWORKS_ALIAS:-ood-ollama}
+
+  mcpo:
+    image: ghcr.io/open-webui/mcpo:latest
+    command: ["mcpo", "--config", "/app/config.json", "--api-key", "${MCPO_API_KEY:-top-secret}"]
+    volumes:
+      - ./mcpo/config.json:/app/config.json
+    # ports:
+    #   - 8000:8000
+    restart: unless-stopped
+    networks:
+      default:
+        aliases:
+          - ${MCPO_NETWORKS_ALIAS:-ood-mcpo}
+
+  searxng:
+    image: searxng/searxng:latest
+    deploy:
+      replicas: 1
+    depends_on:
+      redis:
+        condition: service_healthy
+    environment:
+      - SECRET_KEY=${SEARXNG_SECRET_KEY}
+      - SEARXNG_BASE_URL=${SEARXNG_BASE_URL:-https://localhost}
+      - UWSGI_WORKERS=${SEARXNG_UWSGI_WORKERS:-4}
+      - UWSGI_THREADS=${SEARXNG_UWSGI_THREADS:-4}
+    cap_drop:
+      - ALL
+    cap_add:
+      - CHOWN
+      - SETGID
+      - SETUID
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "1m"
+        max-file: "1"
+    labels:
+      - autoheal-app=true
+      - com.centurylinklabs.watchtower.enable=true
+    volumes:
+      - ./searxng:/etc/searxng:rw
+    # ports:
+    #   - ${SEARXNG_PORT}:8080
+    restart: unless-stopped
+    networks:
+      default:
+        aliases:
+          - ${SEARXNG_NETWORKS_ALIAS:-ood-searxng}
+
+  vllm:
+    image: vllm/vllm-openai:latest
+    command: "--model BAAI/bge-reranker-v2-m3 --task score"
+    #### uncomment if cuda available
+    # deploy:
+    #   replicas: 1
+    #   resources:
+    #     reservations:
+    #       devices:
+    #         - driver: nvidia
+    #           count: all
+    #           capabilities: [gpu]
+    #     limits:
+    #       memory: 8GB
+    # ports:
+    #   - 8000:8000
+    restart: unless-stopped
+    networks:
+      default:
+        aliases:
+          - ${VLLM_NETWORKS_ALIAS:-ood-vllm}
+
+  open-webui:
+    image: ghcr.io/open-webui/open-webui:${OPEN_WEBUI_TAG:-main}
+    #### uncomment if cuda available
+    # deploy:
+    #   replicas: 1
+    #   resources:
+    #     reservations:
+    #       # memory: 16GB
+    #       devices:
+    #         - driver: nvidia
+    #           count: all
+    #           capabilities: [gpu]
+    #     limits:
+    #       memory: 32GB
+    depends_on:
+      postgres:
+        condition: service_healthy
+      ollama:
+        condition: service_healthy
+    environment:
+      ## OpenAI
+      - ENABLE_OPENAI_API=${ENABLE_OPENAI_API:-false}
+      - OPENAI_API_KEY=${OPENAI_API_KEY:-}
+      - OPENAI_API_BASE_URL=${OPENAI_API_BASE_URL:-https://api.openai.com/v1}
+      
+      ## Ollama
+      - OLLAMA_BASE_URL=${OLLAMA_BASE_URL:-http://ollama:11434}
+
+      ## RAG
+      - ENABLE_RAG_HYBRID_SEARCH=${ENABLE_RAG_HYBRID_SEARCH:-false}
+      - RAG_RERANKING_MODEL=${RAG_RERANKING_MODEL:-}
+      - RAG_EMBEDDING_ENGINE=${RAG_EMBEDDING_ENGINE:-}
+      - RAG_EMBEDDING_MODEL=${RAG_EMBEDDING_MODEL:-sentence-transformers/all-MiniLM-L6}
+      - RAG_EMBEDDING_MODEL_AUTO_UPDATE={RAG_EMBEDDING_MODEL_AUTO_UPDATE:-false}
+
+      ## Searxng
+      - ENABLE_RAG_WEB_SEARCH=${ENABLE_RAG_WEB_SEARCH:-true}
+      - ENABLE_SEARCH_QUERY=${ENABLE_SEARCH_QUERY:-true}
+      - RAG_WEB_SEARCH_ENGINE=${RAG_WEB_SEARCH_ENGINE:-searxng}
+      - RAG_WEB_SEARCH_RESULT_COUNT=${RAG_WEB_SEARCH_RESULT_COUNT:-3}
+      - RAG_WEB_SEARCH_CONCURRENT_REQUEST=${RAG_WEB_SEARCH_CONCURRENT_REQUESTS:-10}
+      - SEARXNG_QUERY_URL=${SEARXNG_QUERY_URL:-http://searxng:8080/search?q=<query>}
+      - YOUTUBE_LOADER_LANGUAGE=${YOUTUBE_LOADER_LANGUAGE:-en,th}
+
+      ## Websocket
+      - ENABLE_WEBSOCKET_SUPPORT=${ENABLE_WEBSOCKET_SUPPORT:-true}
+      - WEBSOCKET_MANAGER=${WEBSOCKET_MANAGER:-redis}
+      - WEBSOCKET_REDIS_URL=${WEBSOCKET_REDIS_URL:-redis://redis:6379/1}
+
+      ## S3
+      - STORAGE_PROVIDER=${STORAGE_PROVIDER:-local}
+      - S3_ACCESS_KEY_ID=${S3_ACCESS_KEY_ID}
+      - S3_SECRET_ACCESS_KEY=${S3_SECRET_ACCESS_KEY}
+      - S3_REGION_NAME=${S3_REGION_NAME:-ap-southeast-1}
+      - S3_BUCKET_NAME=${S3_BUCKET_NAME}
+      - S3_ENDPOINT_URL=${S3_ENDPOINT_URL}
+
+      ## Web Server
+      - ENV=${ENV:-production}
+      - WEBUI_SECRET_KEY=${WEBUI_SECRET_KEY:-secret}
+      - ADMIN_EMAIL=${ADMIN_EMAIL}
+      - JWT_EXPIRES_IN=${JWT_EXPIRES_IN:-3600}
+      - USE_CUDA_DOCKER=${USE_CUDA_DOCKER:-false}
+      - DATABASE_URL=${DATABASE_URL}
+      - VECTOR_DB=${VECTOR_DB:-pgvector}
+      - GLOBAL_LOG_LEVEL=DEBUG
+      # - OAUTH_MERGE_ACCOUNTS_BY_EMAIL=${OAUTH_MERGE_ACCOUNTS_BY_EMAIL:-false}
+      # - GOOGLE_CLIENT_ID=${GOOGLE_CLIENT_ID:-REPLACEME_GOOGLE_CLIENT_ID}
+      # - GOOGLE_CLIENT_SECRET=${GOOGLE_CLIENT_SECRET:-REPLACEME_GOOGLE_CLIENT_SECRET}
+      # - ENABLE_OAUTH_SIGNUP=${ENABLE_OAUTH_SIGNUP:-true}
+
+      # ## Google Drive Integration
+      # - ENABLE_GOOGLE_DRIVE_INTEGRATION=${ENABLE_GOOGLE_DRIVE_INTEGRATION:-true}
+      # - GOOGLE_DRIVE_CLIENT_ID=${GOOGLE_DRIVE_CLIENT_ID}
+      # - GOOGLE_DRIVE_API_KEY=${GOOGLE_DRIVE_API_KEY}
+      # # - GOOGLE_REDIRECT_URI=${GOOGLE_REDIRECT_URI}
+
+      # ## Image Generation
+      # - ENABLE_IMAGE_GENERATION=${ENABLE_IMAGE_GENERATION:-false}
+      # - IMAGE_GENERATION_ENGINE=${IMAGE_GENERATION_ENGINE:-comfyui}
+      # - IMAGE_GENERATION_MODEL=${IMAGE_GENERATION_MODEL:-stable-diffusion-xl}
+      # - IMAGE_SIZE=${IMAGE_SIZE:-1024x1024}
+
+    healthcheck:
+      test: timeout 5 bash -c "</dev/tcp/localhost/8080"
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    # ports:
+    #   - ${OPEN_WEBUI_PORT:-8080}:8080
+    restart: unless-stopped
+    # volumes:
+    #   - open_webui:/app/backend/data
+    networks:
+      default:
+        aliases:
+          - ${OPEN_WEBUI_NETWORKS_ALIAS:-ood-open-webui}
+
+volumes:
+  ollama:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: ${VOLUME_DOCKER:-/home/pi/docker_volumes}/ollama
+
+networks:
+  default:
