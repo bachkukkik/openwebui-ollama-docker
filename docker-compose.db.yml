@@ -1,0 +1,123 @@
+services:
+  postgres:
+    image: pgvector/pgvector:${PGVECTOR_TAG:-pg17}
+    shm_size: 1g
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-password}
+      POSTGRES_DB: ${POSTGRES_DB:-postgres}
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    # ports:
+    #   - 5432:5432
+    restart: unless-stopped
+    volumes:  
+      - postgres:/var/lib/postgresql/data
+    networks:
+      default:
+        aliases:
+          - ${POSTGRES_NETWORKS_ALIAS:-ood-postgres}
+          
+  redis:
+    image: redis:8-alpine
+    command: 
+      - /bin/sh
+      - -c
+      - redis-server --requirepass "$${REDIS_PASSWORD:?REDIS_PASSWORD variable is not set}"
+    environment:
+      - REDIS_PASSWORD=${REDIS_PASSWORD:-}
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 3
+    restart: unless-stopped
+    cap_drop:
+      - ALL
+    cap_add:
+      - SETGID
+      - SETUID
+      - DAC_OVERRIDE
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "1m"
+        max-file: "1"
+    # ports:
+    #   - 6379:6379
+    volumes:
+      - redis:/data:rw
+    networks:
+      default:
+        aliases:
+          - ${REDIS_NETWORKS_ALIAS:-ood-redis}
+
+  minio:
+    image: minio/minio
+    environment:
+      - MINIO_ROOT_USER=${MINIO_ROOT_USER}
+      - MINIO_ROOT_PASSWORD=${MINIO_ROOT_PASSWORD}
+      - MINIO_BUCKET_NAME=${MINIO_BUCKET_NAME}
+    command: 'server --console-address ":9001" /data'
+    healthcheck:
+      test: 'sleep 5 && exit 0'
+      interval: 2s
+      timeout: 10s
+      retries: 5
+    # ports:
+    #   - 9000:9000
+    #   - 9001:9001
+    restart: unless-stopped
+    volumes:
+      - storage:/data
+    networks:
+      default:
+        aliases:
+          - ${MINIO_NETWORKS_ALIAS:-ood-minio}
+
+  minio-createbucket:
+    image: minio/mc
+    restart: 'no'
+    environment:
+      - MINIO_ROOT_USER=${MINIO_ROOT_USER}
+      - MINIO_ROOT_PASSWORD=${MINIO_ROOT_PASSWORD}
+      - MINIO_BUCKET_NAME=${MINIO_BUCKET_NAME}
+    depends_on:
+      minio:
+        condition: service_healthy
+    entrypoint:
+      - /minio-entrypoint.sh
+    volumes:
+      -
+        type: bind
+        source: ./volumes_minio/minio-entrypoint.sh
+        target: /minio-entrypoint.sh
+    networks:
+      default:
+        aliases:
+          - ${MINIO_CREATEBUCKET_NETWORKS_ALIAS:-ood-minio-createbucket}
+
+volumes:
+  postgres:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: ${VOLUME_DOCKER:-/home/pi/docker_volumes}/postgres
+  redis:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: ${VOLUME_DOCKER:-/home/pi/docker_volumes}/redis
+  minio:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: ${VOLUME_DOCKER:-/home/pi/docker_volumes}/minio
+networks:
+  default:
