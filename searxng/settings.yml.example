@@ -2,11 +2,14 @@
 use_default_settings: true
 
 server:
-  secret_key: "changeme or $ openssl rand -base64 64 | tr -d '=+/'"
-  limiter: false
+  secret_key: ${SECRET_KEY}
+  limiter: true
   image_proxy: true
   port: 8080
   bind_address: "0.0.0.0"
+
+redis:
+  url: redis://redis:6379/0
 
 ui:
   static_use_hash: true
