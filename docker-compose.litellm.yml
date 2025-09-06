@@ -1,6 +1,6 @@
 services:
   litellm_postgres:
-    image: postgres:17
+    image: pgvector/pgvector:${LITELLM_PGVECTOR_TAG:-pg17}
     environment:
       - POSTGRES_USER=${LITELLM_POSTGRES_USER:-postgres}
       - POSTGRES_PASSWORD=${LITELLM_POSTGRES_PASSWORD}
@@ -8,15 +8,12 @@ services:
     volumes:
       - litellm_postgres:/var/lib/postgresql/data
     # ports:
-    #   - "${LITELLM_POSTGRES_PORT:-5432}:5432"
+    #   - 5432:5432
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U ${LITELLM_POSTGRES_USER:-postgres}"]
       interval: 5s
       timeout: 5s
       retries: 5
-    labels:
-      - autoheal-app=true
-      - com.centurylinklabs.watchtower.enable=true
     restart: unless-stopped
     networks:
       default:
@@ -36,9 +33,6 @@ services:
       interval: 10s
       timeout: 3s
       retries: 3
-    labels:
-      - autoheal-app=true
-      - com.centurylinklabs.watchtower.enable=true
     restart: unless-stopped
     volumes:
       - litellm_redis:/data:rw
@@ -49,8 +43,8 @@ services:
 
   litellm:
     image: ghcr.io/berriai/litellm-database:main-latest
-    ports:
-      - 4000:4000
+    # ports:
+    #   - 4000:4000
     environment:
       - DATABASE_URL=${LITELLM_DATABASE_URL}
       - LITELLM_MODE=${LITELLM_MODE:-PRODUCTION}
@@ -61,12 +55,13 @@ services:
       - REDIS_PORT=${LITELLM_REDIS_PORT:-6379}
       - REDIS_PASSWORD=${LITELLM_REDIS_PASSWORD:-}
       - OLLAMA_BASE_URL=${OLLAMA_BASE_URL:-http://ollama:11434}
-      - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY}
-      - OPENAI_API_KEY=${OPENAI_API_KEY}
-      - DEEPSEEK_API_KEY=${DEEPSEEK_API_KEY}
-      - VERTEX_PROJECT=${VERTEX_PROJECT}
-      - VERTEX_LOCATION=${VERTEX_LOCATION}
-      - VERTEX_CREDENTIALS=${VERTEX_CREDENTIALS}
+      # - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY}
+      # - DEEPSEEK_API_KEY=${DEEPSEEK_API_KEY}
+      # - OPENAI_API_KEY=${OPENAI_API_KEY}
+      - OPENROUTER_API_KEY=${OPENROUTER_API_KEY-}
+      # - VERTEX_PROJECT=${VERTEX_PROJECT}
+      # - VERTEX_LOCATION=${VERTEX_LOCATION}
+      # - VERTEX_CREDENTIALS=${VERTEX_CREDENTIALS}
     volumes:
       - ./litellm/config.yaml:/app/config.yaml
       - ./litellm/.credentials/:/app/.credentials/
@@ -83,9 +78,6 @@ services:
       retries: 5
       start_period: 15s
     restart: unless-stopped
-    labels:
-      - autoheal-app=true
-      - com.centurylinklabs.watchtower.enable=true
     networks:
       default:
       cloudflare:
