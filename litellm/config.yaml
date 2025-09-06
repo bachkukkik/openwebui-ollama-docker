@@ -1,0 +1,93 @@
+model_list: 
+  # - model_name: "anthropic/*"
+  #   litellm_params:
+  #     model: "anthropic/*"
+  #     drop_params: true
+  #     api_key: os.environ/ANTHROPIC_API_KEY
+  #   model_info:
+  #     supports_function_calling: true
+  #     supports_vision: True
+
+  # - model_name: "deepseek/*"
+  #   litellm_params:
+  #     model: "deepseek/*"
+  #     drop_params: true
+  #     api_key: os.environ/DEEPSEEK_API_KEY
+  #   model_info:
+  #     supports_function_calling: true
+
+  # - model_name: ollama/mistral-small3.2:latest
+  #   litellm_params:
+  #     model: ollama/mistral-small3.2:latest
+  #     drop_params: true
+  #     api_base: os.environ/OLLAMA_BASE_URL
+  #   model_info:
+  #     supports_function_calling: true
+  #     supports_vision: True
+
+  # - model_name: ollama_chat/mistral-small3.2:latest
+  #   litellm_params:
+  #     model: ollama_chat/mistral-small3.2:latest
+  #     drop_params: true
+  #     api_base: os.environ/OLLAMA_BASE_URL
+  #   model_info:
+  #     supports_function_calling: true
+  #     supports_vision: True
+
+  # - model_name: "openai/*"
+  #   litellm_params:
+  #     model: "openai/*"
+  #     drop_params: true
+  #     api_key: os.environ/OPENAI_API_KEY
+  #   model_info:
+  #     supports_function_calling: true
+  #     supports_vision: True
+  #     web_search_options: {}
+
+  - model_name: "openrouter/*"
+    litellm_params:
+      model: "openrouter/*"
+      drop_params: true
+      api_key: os.environ/OPENROUTER_API_KEY
+    model_info:
+      supports_function_calling: true
+      supports_vision: True
+
+  # - model_name: "vertex_ai/*"
+  #   litellm_params:
+  #     model: "vertex_ai/*"
+  #     drop_params: true
+  #     vertex_project: os.environ/VERTEX_PROJECT
+  #     vertex_location: os.environ/VERTEX_LOCATION
+  #     vertex_credentials: os.environ/VERTEX_CREDENTIALS
+  #   model_info:
+  #     supports_function_calling: true
+  #     supports_vision: True
+  #     web_search_options: {}
+
+router_settings:
+  redis_host: os.environ/REDIS_HOST
+  redis_port: os.environ/REDIS_PORT
+
+litellm_settings:
+  request_timeout: 600    # raise Timeout error if call takes longer than 600 seconds. Default value is 6000seconds if not set
+  set_verbose: False      # Switch off Debug Logging, ensure your logs do not have any debugging on
+  json_logs: true         # Get debug logs in json format
+  default_fallbacks: ["ollama/qwen3:30b"]
+  cache: True
+  cache_params:
+    type: redis
+    host: os.environ/REDIS_HOST
+    port: os.environ/REDIS_PORT
+
+
+general_settings:
+  master_key: os.environ/LITELLM_MASTER_KEY # enter your own master key, ensure it starts with 'sk-'
+  # alerting: ["slack"]      # Setup slack alerting - get alerts on LLM exceptions, Budget Alerts, Slow LLM Responses
+  proxy_batch_write_at: 60 # Batch write spend updates every 60s
+  database_connection_pool_limit: 10 # limit the number of database connections to = MAX Number of DB Connections/Number of instances of litellm proxy (Around 10-20 is good number)
+
+  # OPTIONAL Best Practices
+  disable_spend_logs: True # turn off writing each transaction to the db. We recommend doing this is you don't need to see Usage on the LiteLLM UI and are tracking metrics via Prometheus
+  disable_error_logs: True # turn off writing LLM Exceptions to DB
+  # allow_requests_on_db_unavailable: True # Only USE when running LiteLLM on your VPC. Allow requests to still be processed even if the DB is unavailable. We recommend doing this if you're running LiteLLM on VPC that cannot be accessed from the public internet.
