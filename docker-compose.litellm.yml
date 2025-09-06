@@ -1,0 +1,110 @@
+services:
+  litellm:
+    image: ghcr.io/berriai/litellm-database:main-latest
+    ports:
+      - "${LITELLM_PORT:-4000}:4000"
+    environment:
+      - DATABASE_URL=${LITELLM_DATABASE_URL}
+      - LITELLM_MODE=${LITELLM_MODE:-PRODUCTION}
+      - LITELLM_LOG=${LITELLM_LOG:-ERROR}
+      - LITELLM_SALT_KEY=${LITELLM_SALT_KEY:-sk-vanilla-agent-litellm}
+      - LITELLM_MASTER_KEY=${LITELLM_MASTER_KEY}
+      - REDIS_HOST=${LITELLM_REDIS_HOST:-litellm_redis}
+      - REDIS_PORT=${LITELLM_REDIS_PORT:-6379}
+      - REDIS_PASSWORD=${LITELLM_REDIS_PASSWORD:-}
+      - OLLAMA_BASE_URL=${OLLAMA_BASE_URL:-http://ollama:11434}
+      - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY}
+      - OPENAI_API_KEY=${OPENAI_API_KEY}
+      - DEEPSEEK_API_KEY=${DEEPSEEK_API_KEY}
+      - VERTEX_PROJECT=${VERTEX_PROJECT}
+      - VERTEX_LOCATION=${VERTEX_LOCATION}
+      - VERTEX_CREDENTIALS=${VERTEX_CREDENTIALS}
+    volumes:
+      - ./litellm/config.yaml:/app/config.yaml
+      - ./litellm/.credentials/:/app/.credentials/
+    command: ["--config", "/app/config.yaml"]
+    depends_on:
+      litellm_postgres:
+        condition: service_healthy
+      litellm_redis:
+        condition: service_healthy
+    healthcheck:
+      test: timeout 5 bash -c "</dev/tcp/localhost/4000"
+      interval: 10s
+      timeout: 30s
+      retries: 5
+      start_period: 15s
+    restart: unless-stopped
+    labels:
+      - autoheal-app=true
+      - com.centurylinklabs.watchtower.enable=true
+    networks:
+      default:
+      cloudflare:
+        aliases:
+          - ${LITELLM_NETWORKS_ALIAS:-ood-litellm}
+
+  litellm_postgres:
+    image: postgres:17
+    environment:
+      - POSTGRES_USER=${LITELLM_POSTGRES_USER:-postgres}
+      - POSTGRES_PASSWORD=${LITELLM_POSTGRES_PASSWORD}
+      - POSTGRES_DB=${LITELLM_POSTGRES_DB:-postgres}
+    volumes:
+      - litellm_postgres:/var/lib/postgresql/data
+    # ports:
+    #   - "${LITELLM_POSTGRES_PORT:-5432}:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${LITELLM_POSTGRES_USER:-postgres}"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    labels:
+      - autoheal-app=true
+      - com.centurylinklabs.watchtower.enable=true
+    restart: unless-stopped
+    networks:
+      default:
+        aliases:
+          - ${LITELLM_POSTGRES_NETWORKS_ALIAS:-ood-litellm-postgres}
+
+  litellm_redis:
+    image: redis:alpine
+    command: 
+      - /bin/sh
+      - -c
+      - redis-server --requirepass "$${REDIS_PASSWORD:?REDIS_PASSWORD variable is not set}"
+    environment:
+      - REDIS_PASSWORD=${LITELLM_REDIS_PASSWORD:-}
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 3
+    labels:
+      - autoheal-app=true
+      - com.centurylinklabs.watchtower.enable=true
+    restart: unless-stopped
+    volumes:
+      - litellm_redis:/data:rw
+    networks:
+      default:
+        aliases:
+          - ${LITELLM_REDIS_NETWORKS_ALIAS:-ood-litellm-redis}
+
+volumes:
+  litellm_postgres:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: ${VOLUME_DOCKER:-/home/pi/docker_volumes}/litellm_postgres
+  litellm_redis:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: ${VOLUME_DOCKER:-/home/pi/docker_volumes}/litellm_redis
+
+networks:
+  default:
