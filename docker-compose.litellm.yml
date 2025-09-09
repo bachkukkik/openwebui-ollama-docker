@@ -80,7 +80,8 @@ services:
     restart: unless-stopped
     networks:
       default:
-        - ${LITELLM_NETWORKS_ALIAS:-ood-litellm}
+        aliases:
+          - ${LITELLM_NETWORKS_ALIAS:-ood-litellm}
 
 volumes:
   litellm_postgres:
