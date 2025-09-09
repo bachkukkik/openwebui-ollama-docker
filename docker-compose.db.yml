@@ -72,7 +72,7 @@ services:
     #   - 9001:9001
     restart: unless-stopped
     volumes:
-      - storage:/data
+      - minio:/data
     networks:
       default:
         aliases:
