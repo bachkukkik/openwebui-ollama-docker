@@ -1,5 +1,6 @@
 ## searxng
 settings.yml
+mcpo/config.json
 
 # Byte-compiled / optimized / DLL files
 __pycache__/

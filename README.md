@@ -48,7 +48,7 @@ All services share one bridge network (`default`) and communicate via internal a
 ├── .env.example                 # 90+ variables documented inline
 ├── litellm/config.yaml          # router, fallback, budget, guardrails
 ├── litellm/.credentials/        # cloud keys (vertex_ai.json, aws.json …)
-├── mcpo/config.json             # MCP tools (brave-search, filesystem …)
+├── mcpo/config.json.example     # MCP tools (brave-search, filesystem …)
 ├── searxng/settings.yml         # privacy search engines, output format
 └── volumes_minio/
     └── minio-entrypoint.sh      # auto-creates bucket on first run
