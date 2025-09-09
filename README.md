@@ -24,7 +24,7 @@ Zero cloud deps. 100 % local. GPU-ready. Prod-grade.
 | **open-webui** | Chat UI, RAG, users, workspaces | `ood-open-webui` | `ghcr.io/open-webui/open-webui:main` |
 | **ollama** | Local LLM inference server | `ood-ollama` | `ollama/ollama:latest` |
 | **vllm** | High-throughput inference / reranker | `ood-vllm` | `vllm/vllm-openai:latest` |
-| **litellm** | Universal gateway (OpenAI ⇆ Ollama ⇆ 100+ clouds) | – | `ghcr.io/berriai/litellm-database:main-latest` |
+| **litellm** | Universal gateway (OpenAI ⇆ Ollama ⇆ 100+ clouds) | `ood-litellm` | `ghcr.io/berriai/litellm-database:main-latest` |
 | **litellm_postgres** | LiteLLM metering, keys, spend tracking | `ood-litellm-postgres` | `pgvector:pg17` |
 | **litellm_redis** | LiteLLM rate-limit & caching | `ood-litellm-redis` | `redis:alpine` |
 | **postgres** | Open-WebUI vector DB & chat history | `ood-postgres` | `pgvector:pg17` |
