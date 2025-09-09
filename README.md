@@ -1,17 +1,19 @@
 # 🏠 Local-ChatGPT Stack  
+
 **“Your own private ChatGPT-in-a-box”** – powered by Docker, Open-WebUI, Ollama, LiteLLM, SearXNG, vLLM, MinIO, Postgres & Redis.  
 Zero cloud deps. 100 % local. GPU-ready. Prod-grade.
 
 ---
 
 ## 🔍 TL;DR  
+
 1. `git clone … && cd openwebui-ollama-docker`  
 2. `cp .env.example .env && nano .env`          # choose models, keys, passwords  
 3. `cp searxng/settings.yml.example searxng/settings.yml`  
 4. `docker compose up -d`                      # 3 files auto-merged  
-5. Browse → http://localhost:8080              # start chatting  
-   API → http://localhost:8080/api              # OpenAI-compatible  
-   LiteLLM proxy → http://localhost:4000        # unified LLM gateway  
+5. Browse → <http://localhost:8080>              # start chatting  
+   API → <http://localhost:8080/api>              # OpenAI-compatible  
+   LiteLLM proxy → <http://localhost:4000>        # unified LLM gateway  
 
 ---
 
@@ -38,7 +40,7 @@ All services share one bridge network (`default`) and communicate via internal a
 
 ## 📁 Repository Layout
 
-```
+```bash
 .
 ├── docker-compose.llm.yml       # ollama, open-webui, vllm, searxng, mcpo
 ├── docker-compose.db.yml        # postgres, redis, minio
@@ -53,6 +55,7 @@ All services share one bridge network (`default`) and communicate via internal a
 ```
 
 Compose files are **loaded automatically** when you run with bash variable environment and run `docker compose up -d`
+
 ```bash
 ## see .env.example
 COMPOSE_FILE=docker-compose.db.yml:docker-compose.llm.yml:docker-compose.litellm.yml
@@ -91,14 +94,17 @@ Full list inlined in `.env.example` – every variable is optional; defaults are
    Restart litellm container → immediately callable via OpenAI SDK pointing to `http://localhost:4000`
 
 3. **Consume**  
-   - Chat UI: http://localhost:8080  
+   - Chat UI: <http://localhost:8080>  
    - OpenAI-compatible API:  
+
      ```bash
      curl http://localhost:8080/api/chat \
        -H "Authorization: Bearer $WEBUI_SECRET_KEY" \
        -d '{"model":"llama3.2:3b","messages":[{"role":"user","content":"hello"}]}'
      ```
+
    - LiteLLM gateway:  
+
      ```bash
      curl http://localhost:4000/v1/chat/completions \
        -H "Authorization: Bearer $LITELLM_MASTER_KEY" \
@@ -122,11 +128,11 @@ Full list inlined in `.env.example` – every variable is optional; defaults are
 
 ## 🔐 Security & Privacy
 
-* No ports bound to host by default – reverse-proxy (Traefik, Nginx, Cloudflare-Tunnel) ready.  
-* SearXNG removes trackers, no logs.  
-* LiteLLM supports virtual keys, budget caps, user roles.  
-* All volumes stored locally (`/home/pi/docker_volumes/*`) – wipe folder = zero residue.  
-* Optional: set `ENV=dev` to enable openai-compatible from Open-WebUI, `GLOBAL_LOG_LEVEL=DEBUG` for verbose logs.
+- No ports bound to host by default – reverse-proxy (Traefik, Nginx, Cloudflare-Tunnel) ready.  
+- SearXNG removes trackers, no logs.  
+- LiteLLM supports virtual keys, budget caps, user roles.  
+- All volumes stored locally (`/home/pi/docker_volumes/*`) – wipe folder = zero residue.  
+- Optional: set `ENV=dev` to enable openai-compatible from Open-WebUI, `GLOBAL_LOG_LEVEL=DEBUG` for verbose logs.
 
 ---
 
