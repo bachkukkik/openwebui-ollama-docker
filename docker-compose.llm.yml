@@ -82,9 +82,9 @@ services:
           - ${SEARXNG_NETWORKS_ALIAS:-ood-searxng}
 
   vllm:
+    #### amd64 only: https://docs.vllm.ai/en/stable/getting_started/installation/cpu.html
     image: vllm/vllm-openai:latest
-    command: "--model BAAI/bge-reranker-v2-m3 --task score"
-    #### uncomment if cuda available
+    # #### uncomment if cuda available
     # deploy:
     #   replicas: 1
     #   resources:
@@ -95,6 +95,7 @@ services:
     #           capabilities: [gpu]
     #     limits:
     #       memory: 8GB
+    command: "--model BAAI/bge-reranker-v2-m3 --task score"
     # ports:
     #   - 8000:8000
     restart: unless-stopped
@@ -191,8 +192,8 @@ services:
       interval: 5s
       timeout: 5s
       retries: 10
-    # ports:
-    #   - ${OPEN_WEBUI_PORT:-8080}:8080
+    ports:
+      - ${OPEN_WEBUI_PORT:-8080}:8080
     restart: unless-stopped
     # volumes:
     #   - open_webui:/app/backend/data
